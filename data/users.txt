@@ -1,0 +1,3 @@
+3|arno|123456|Admin|Pending
+1|admin|admin|Admin|Pending
+2|staff|staff|Staff|Pending
