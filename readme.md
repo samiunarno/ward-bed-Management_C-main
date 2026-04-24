@@ -65,6 +65,6 @@ git clone https://github.com/yourusername/HospitalBedManagement.git
 cd HospitalBedManagement
 
 
-gcc -o ward_manage main.c models/*.c services/*.c utils/*.c 
+gcc -o bed_management main.c models/*.c services/*.c utils/*.c 
 
 ./bed_management
