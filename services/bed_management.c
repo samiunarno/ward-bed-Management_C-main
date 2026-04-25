@@ -41,6 +41,10 @@ BedManagementSystem* create_system() {
             admin->next = sys->user_list;
             sys->user_list = admin;
             save_all_data(sys);
+        } else if (admin->status != STATUS_APPROVED) {
+            printf("[*] Admin found but not approved. Approving admin user...\n");
+            admin->status = STATUS_APPROVED;
+            save_all_data(sys);
         }
     }
     return sys;
@@ -162,6 +166,18 @@ void load_all_data(BedManagementSystem* sys) {
                 UserRole role = user_string_to_role(parts[3]);
                 UserStatus status = user_string_to_status(parts[4]);
                 User* user = create_user(id, username, password, role, status);
+                
+                if (part_count >= 11) {
+                    user->failed_attempts = atoi(parts[5]);
+                    user->locked_until = (time_t)atol(parts[6]);
+                    user->last_login = (time_t)atol(parts[7]);
+                    user->last_activity = (time_t)atol(parts[8]);
+                    strncpy(user->security_question, parts[9], MAX_SECURITY_Q - 1);
+                    user->security_question[MAX_SECURITY_Q - 1] = '\0';
+                    strncpy(user->security_answer, parts[10], MAX_SECURITY_A - 1);
+                    user->security_answer[MAX_SECURITY_A - 1] = '\0';
+                }
+                
                 user->next = sys->user_list;
                 sys->user_list = user;
                 
@@ -226,10 +242,16 @@ void save_all_data(BedManagementSystem* sys) {
     if (file) {
         User* current = sys->user_list;
         while (current != NULL) {
-            fprintf(file, "%d|%s|%s|%s|%s\n",
+            fprintf(file, "%d|%s|%s|%s|%s|%d|%ld|%ld|%ld|%s|%s\n",
                     current->id, current->username, current->password,
                     user_role_to_string(current->role),
-                    user_status_to_string(current->status));
+                    user_status_to_string(current->status),
+                    current->failed_attempts,
+                    (long)current->locked_until,
+                    (long)current->last_login,
+                    (long)current->last_activity,
+                    current->security_question,
+                    current->security_answer);
             current = current->next;
         }
         close_file(file);

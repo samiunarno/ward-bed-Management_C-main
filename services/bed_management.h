@@ -45,4 +45,10 @@ int authenticate(BedManagementSystem* system, const char* username, const char* 
 User* get_pending_users(BedManagementSystem* system);
 int get_pending_users_count(BedManagementSystem* system);
 
+int change_password(BedManagementSystem* system, const char* username, const char* old_password, const char* new_password);
+int reset_password_by_admin(BedManagementSystem* system, const char* username, const char* new_password);
+int set_security_question(BedManagementSystem* system, const char* username, const char* question, const char* answer);
+int verify_security_answer(User* user, const char* answer);
+void log_login_attempt(const char* username, const char* status, int success);
+
 #endif

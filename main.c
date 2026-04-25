@@ -53,7 +53,7 @@ int main() {
             password[strcspn(password, "\n")] = '\0';
             
             if (authenticate(system, username, password, &current_user)) {
-                if (current_user->status == STATUS_APPROVED) {
+                if (current_user->status != STATUS_APPROVED) {
                     printf("\n[!] Account not approved yet. Please wait for admin approval.\n");
                     continue;
                 }

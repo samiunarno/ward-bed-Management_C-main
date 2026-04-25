@@ -1,3 +1,6 @@
-3|arno|123456|Admin|Pending
-1|admin|admin|Admin|Pending
-2|staff|staff|Staff|Pending
+6|rlf|123456|Staff|Pending
+3|arno|arno|Staff|Approved
+1|admin|admin|Admin|Approved
+2|staff|staff|Staff|Approved
+4|Joyce|123456|Staff|Approved
+5|joyce|123456|Admin|Approved

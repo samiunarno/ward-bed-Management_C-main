@@ -1,8 +1,15 @@
 #ifndef USER_H
 #define USER_H
 
+#include <time.h>
+
 #define MAX_USERNAME 50
 #define MAX_PASSWORD 50
+#define MAX_SECURITY_Q 100
+#define MAX_SECURITY_A 100
+#define MIN_PASSWORD_LENGTH 8
+#define MAX_LOGIN_ATTEMPTS 3
+#define SESSION_TIMEOUT 900
 
 typedef enum {
     ROLE_ADMIN,
@@ -21,6 +28,12 @@ typedef struct User {
     char password[MAX_PASSWORD];
     UserRole role;
     UserStatus status;
+    int failed_attempts;
+    time_t locked_until;
+    time_t last_login;
+    time_t last_activity;
+    char security_question[MAX_SECURITY_Q];
+    char security_answer[MAX_SECURITY_A];
     struct User* next;
 } User;
 
@@ -32,5 +45,15 @@ UserRole user_string_to_role(const char* str);
 const char* user_status_to_string(UserStatus status);
 UserStatus user_string_to_status(const char* str);
 User* find_user_by_username(User* head, const char* username);
+
+int is_password_strong(const char* password);
+int is_account_locked(User* user);
+void lock_account(User* user);
+void unlock_account(User* user);
+void reset_failed_attempts(User* user);
+void increment_failed_attempts(User* user);
+void update_last_login(User* user);
+void update_last_activity(User* user);
+int is_session_expired(User* user);
 
 #endif
