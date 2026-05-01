@@ -5,78 +5,81 @@
 #include <stdlib.h>
 #include <string.h>
 
-void admin_menu(BedManagementSystem* system);
-void staff_menu(BedManagementSystem* system);
-void registration_menu(BedManagementSystem* system);
-void admin_approval_menu(BedManagementSystem* system);
+// 函数声明
+void admin_menu(BedManagementSystem* system);      // 管理员菜单
+void staff_menu(BedManagementSystem* system);      // 工作人员菜单
+void registration_menu(BedManagementSystem* system); // 注册菜单
+void admin_approval_menu(BedManagementSystem* system); // 管理员审批菜单
 
-// Add this at the beginning of main()
+// 许可证验证功能（已注释）
 // int verify_license() {
-//     // Check for license file
+//     // 检查许可证文件是否存在
 //     FILE* license = fopen("license.key", "r");
 //     if (!license) {
-//         printf("License not found! Contact support.\n");
+//         printf("未找到许可证！请联系技术支持。\n");
 //         return 0;
 //     }
-//     // Verify license key...
+//     // 验证许可证密钥...
 //     return 1;
 // }
 
 int main() {
-
-    BedManagementSystem* system = create_system();
-    User* current_user = NULL;
+    BedManagementSystem* system = create_system(); // 创建系统实例
+    User* current_user = NULL;                     // 当前登录用户
     int choice;
     
     printf("========================================\n");
-    printf("   HOSPITAL BED MANAGEMENT SYSTEM\n");
+    printf("   医院床位管理系统\n");
     printf("========================================\n");
     
     while (1) {
-        printf("\n========== MAIN MENU ==========\n");
-        printf("1. Login\n");
-        printf("2. Register\n");
-        printf("3. Exit\n");
-        printf("Choice: ");
+        printf("\n========== 主菜单 ==========\n");
+        printf("1. 登录\n");
+        printf("2. 注册\n");
+        printf("3. 退出\n");
+        printf("请选择：");
         scanf("%d", &choice);
-        getchar();
+        getchar(); // 清除缓冲区中的换行符
         
         if (choice == 1) {
             char username[MAX_USERNAME], password[MAX_PASSWORD];
-            printf("\n--- LOGIN ---\n");
-            printf("Username: ");
+            printf("\n--- 登录 ---\n");
+            printf("用户名：");
             fgets(username, MAX_USERNAME, stdin);
             username[strcspn(username, "\n")] = '\0';
             
-            printf("Password: ");
+            printf("密码：");
             fgets(password, MAX_PASSWORD, stdin);
             password[strcspn(password, "\n")] = '\0';
             
+            // 验证用户身份
             if (authenticate(system, username, password, &current_user)) {
+                // 检查账号是否已批准
                 if (current_user->status != STATUS_APPROVED) {
-                    printf("\n[!] Account not approved yet. Please wait for admin approval.\n");
+                    printf("\n[!] 账号尚未批准，请等待管理员审核。\n");
                     continue;
                 }
                 
-                printf("\n[+] Welcome, %s (%s)!\n", current_user->username, 
+                printf("\n[+] 欢迎，%s（%s）！\n", current_user->username, 
                        user_role_to_string(current_user->role));
                 
+                // 根据角色进入不同菜单
                 if (current_user->role == ROLE_ADMIN) {
                     admin_menu(system);
                 } else if (current_user->role == ROLE_STAFF) {
                     staff_menu(system);
                 }
             } else {
-                printf("\n[!] Invalid credentials.\n");
+                printf("\n[!] 用户名或密码错误。\n");
             }
         } else if (choice == 2) {
             registration_menu(system);
         } else {
             printf("\n========================================\n");
-            printf("   EXITING SYSTEM...\n");
+            printf("   正在退出系统...\n");
             printf("========================================\n");
-            free_system(system);
-            printf("Goodbye!\n");
+            free_system(system); // 释放系统资源
+            printf("再见！\n");
             break;
         }
     }
@@ -84,80 +87,84 @@ int main() {
     return 0;
 }
 
+// 用户注册菜单
 void registration_menu(BedManagementSystem* system) {
     char username[MAX_USERNAME], password[MAX_PASSWORD], role[20];
     
-    printf("\n--- REGISTRATION ---\n");
-    printf("Username: ");
+    printf("\n--- 用户注册 ---\n");
+    printf("用户名：");
     fgets(username, MAX_USERNAME, stdin);
     username[strcspn(username, "\n")] = '\0';
     
-    printf("Password: ");
+    printf("密码：");
     fgets(password, MAX_PASSWORD, stdin);
     password[strcspn(password, "\n")] = '\0';
     
-    printf("Role (Admin/Staff): ");
+    printf("角色（Admin/Staff）：");
     fgets(role, sizeof(role), stdin);
     role[strcspn(role, "\n")] = '\0';
     
+    // 调用注册函数
     if (register_user(system, username, password, role)) {
-        printf("\n[+] Registration successful! Awaiting admin approval.\n");
+        printf("\n[+] 注册成功！等待管理员审核。\n");
     } else {
-        printf("\n[!] Registration failed. Username may already exist.\n");
+        printf("\n[!] 注册失败，用户名可能已存在。\n");
     }
 }
 
+// 管理员审批菜单：审核待注册用户
 void admin_approval_menu(BedManagementSystem* system) {
     int count = get_pending_users_count(system);
     if (count == 0) {
-        printf("\n[+] No pending registrations.\n");
+        printf("\n[+] 没有待审核的注册申请。\n");
         return;
     }
     
-    printf("\n--- PENDING APPROVALS ---\n");
+    printf("\n--- 待审核用户 ---\n");
     User* pending = get_pending_users(system);
     User* current = pending;
     
     while (current != NULL) {
-        display_user(current);
+        display_user(current); // 显示用户信息
         char choice;
-        printf("Approve this user? (y/n): ");
+        printf("是否批准该用户？（y/n）：");
         scanf(" %c", &choice);
         getchar();
         
         if (choice == 'y' || choice == 'Y') {
             if (approve_user(system, current->username)) {
-                printf("[+] User approved.\n");
+                printf("[+] 用户已批准。\n");
             } else {
-                printf("[!] Failed to approve user.\n");
+                printf("[!] 批准用户失败。\n");
             }
         } else {
-            printf("[-] User rejected.\n");
+            printf("[-] 用户已拒绝。\n");
         }
         current = current->next;
     }
     
-    free_user_list(pending);
+    free_user_list(pending); // 释放链表内存
 }
 
+// 管理员主菜单
 void admin_menu(BedManagementSystem* system) {
     int choice;
     do {
-        printf("\n========== ADMIN MENU ==========\n");
-        printf("1. Add Ward\n");
-        printf("2. Remove Ward\n");
-        printf("3. Add Bed\n");
-        printf("4. Remove Bed\n");
-        printf("5. Admit Patient\n");
-        printf("6. Transfer Patient\n");
-        printf("7. Discharge Patient\n");
-        printf("8. View All Wards\n");
-        printf("9. View All Patients\n");
-        printf("10. Generate Reports\n");
-        printf("11. Export Reports\n");
-        printf("12. Approve User Registrations\n");
-        printf("13. Logout\n");
-        printf("Choice: ");
+        printf("\n========== 管理员菜单 ==========\n");
+        printf("1. 添加病房\n");
+        printf("2. 删除病房\n");
+        printf("3. 添加床位\n");
+        printf("4. 删除床位\n");
+        printf("5. 接收病人\n");
+        printf("6. 转院/转病房\n");
+        printf("7. 病人出院\n");
+        printf("8. 查看所有病房\n");
+        printf("9. 查看所有病人\n");
+        printf("10. 生成报表\n");
+        printf("11. 导出报表\n");
+        printf("12. 审核用户注册\n");
+        printf("13. 退出登录\n");
+        printf("请选择：");
         scanf("%d", &choice);
         getchar();
         
@@ -165,64 +172,64 @@ void admin_menu(BedManagementSystem* system) {
             case 1: {
                 char name[MAX_WARD_NAME], type[MAX_WARD_TYPE];
                 int capacity;
-                printf("\n--- ADD WARD ---\n");
-                printf("Ward Name: ");
+                printf("\n--- 添加病房 ---\n");
+                printf("病房名称：");
                 fgets(name, MAX_WARD_NAME, stdin);
                 name[strcspn(name, "\n")] = '\0';
-                printf("Ward Type (General/ICU/Private): ");
+                printf("病房类型（General/ICU/Private）：");
                 fgets(type, MAX_WARD_TYPE, stdin);
                 type[strcspn(type, "\n")] = '\0';
-                printf("Capacity: ");
+                printf("容量：");
                 scanf("%d", &capacity);
                 getchar();
                 
                 if (add_ward(system, name, type, capacity)) {
-                    printf("[+] Ward added successfully.\n");
+                    printf("[+] 病房添加成功。\n");
                 } else {
-                    printf("[!] Failed to add ward.\n");
+                    printf("[!] 添加病房失败。\n");
                 }
                 break;
             }
             case 2: {
                 int ward_id;
-                printf("\n--- REMOVE WARD ---\n");
-                printf("Ward ID: ");
+                printf("\n--- 删除病房 ---\n");
+                printf("病房ID：");
                 scanf("%d", &ward_id);
                 getchar();
                 if (remove_ward(system, ward_id)) {
-                    printf("[+] Ward removed successfully.\n");
+                    printf("[+] 病房删除成功。\n");
                 } else {
-                    printf("[!] Ward not found.\n");
+                    printf("[!] 未找到该病房。\n");
                 }
                 break;
             }
             case 3: {
                 int ward_id, bed_id;
-                printf("\n--- ADD BED ---\n");
-                printf("Ward ID: ");
+                printf("\n--- 添加床位 ---\n");
+                printf("病房ID：");
                 scanf("%d", &ward_id);
-                printf("Bed ID: ");
+                printf("床位ID：");
                 scanf("%d", &bed_id);
                 getchar();
                 if (add_bed(system, ward_id, bed_id)) {
-                    printf("[+] Bed added successfully.\n");
+                    printf("[+] 床位添加成功。\n");
                 } else {
-                    printf("[!] Failed to add bed.\n");
+                    printf("[!] 添加床位失败。\n");
                 }
                 break;
             }
             case 4: {
                 int ward_id, bed_id;
-                printf("\n--- REMOVE BED ---\n");
-                printf("Ward ID: ");
+                printf("\n--- 删除床位 ---\n");
+                printf("病房ID：");
                 scanf("%d", &ward_id);
-                printf("Bed ID: ");
+                printf("床位ID：");
                 scanf("%d", &bed_id);
                 getchar();
                 if (remove_bed(system, ward_id, bed_id)) {
-                    printf("[+] Bed removed successfully.\n");
+                    printf("[+] 床位删除成功。\n");
                 } else {
-                    printf("[!] Bed not found.\n");
+                    printf("[!] 未找到该床位。\n");
                 }
                 break;
             }
@@ -232,30 +239,30 @@ void admin_menu(BedManagementSystem* system) {
                 char current_date[11];
                 get_current_date(current_date, sizeof(current_date));
                 
-                printf("\n--- ADMIT PATIENT ---\n");
-                printf("Patient Name: ");
+                printf("\n--- 接收病人 ---\n");
+                printf("病人姓名：");
                 fgets(name, MAX_NAME, stdin);
                 name[strcspn(name, "\n")] = '\0';
-                printf("Age: ");
+                printf("年龄：");
                 scanf("%d", &age);
                 getchar();
-                printf("Gender: ");
+                printf("性别：");
                 fgets(gender, MAX_GENDER, stdin);
                 gender[strcspn(gender, "\n")] = '\0';
-                printf("Contact: ");
+                printf("联系方式：");
                 fgets(contact, MAX_CONTACT, stdin);
                 contact[strcspn(contact, "\n")] = '\0';
-                printf("Patient ID: ");
+                printf("病人ID（自定义）：");
                 fgets(patient_id, MAX_PATIENT_ID, stdin);
                 patient_id[strcspn(patient_id, "\n")] = '\0';
-                printf("Ward ID: ");
+                printf("病房ID：");
                 scanf("%d", &ward_id);
-                printf("Bed ID: ");
+                printf("床位ID：");
                 scanf("%d", &bed_id);
                 getchar();
                 
                 Patient new_patient;
-                new_patient.id = system->next_patient_id;
+                new_patient.id = system->next_patient_id;      // 系统内唯一ID
                 strcpy(new_patient.name, name);
                 new_patient.age = age;
                 strcpy(new_patient.gender, gender);
@@ -267,39 +274,39 @@ void admin_menu(BedManagementSystem* system) {
                 
                 if (admit_patient(system, &new_patient, ward_id, bed_id)) {
                     system->next_patient_id++;
-                    printf("[+] Patient admitted successfully.\n");
+                    printf("[+] 病人接收成功。\n");
                 } else {
-                    printf("[!] Admission failed. Bed may be occupied or invalid.\n");
+                    printf("[!] 接收失败，床位可能已被占用或无效。\n");
                 }
                 break;
             }
             case 6: {
                 int patient_id, new_ward_id, new_bed_id;
-                printf("\n--- TRANSFER PATIENT ---\n");
-                printf("Patient ID: ");
+                printf("\n--- 转院/转病房 ---\n");
+                printf("病人ID：");
                 scanf("%d", &patient_id);
-                printf("New Ward ID: ");
+                printf("新病房ID：");
                 scanf("%d", &new_ward_id);
-                printf("New Bed ID: ");
+                printf("新床位ID：");
                 scanf("%d", &new_bed_id);
                 getchar();
                 if (transfer_patient(system, patient_id, new_ward_id, new_bed_id)) {
-                    printf("[+] Patient transferred successfully.\n");
+                    printf("[+] 病人转床成功。\n");
                 } else {
-                    printf("[!] Transfer failed.\n");
+                    printf("[!] 转床失败。\n");
                 }
                 break;
             }
             case 7: {
                 int patient_id;
-                printf("\n--- DISCHARGE PATIENT ---\n");
-                printf("Patient ID: ");
+                printf("\n--- 病人出院 ---\n");
+                printf("病人ID：");
                 scanf("%d", &patient_id);
                 getchar();
                 if (discharge_patient(system, patient_id)) {
-                    printf("[+] Patient discharged successfully.\n");
+                    printf("[+] 病人出院成功。\n");
                 } else {
-                    printf("[!] Discharge failed. Patient may not be admitted.\n");
+                    printf("[!] 出院失败，病人可能未入院。\n");
                 }
                 break;
             }
@@ -319,25 +326,26 @@ void admin_menu(BedManagementSystem* system) {
                 admin_approval_menu(system);
                 break;
             case 13:
-                printf("\n[+] Logging out...\n");
+                printf("\n[+] 正在退出登录...\n");
                 return;
             default:
-                printf("[!] Invalid choice. Please try again.\n");
+                printf("[!] 无效选项，请重试。\n");
         }
     } while (1);
 }
 
+// 工作人员菜单
 void staff_menu(BedManagementSystem* system) {
     int choice;
     do {
-        printf("\n========== STAFF MENU ==========\n");
-        printf("1. View All Wards\n");
-        printf("2. View All Patients\n");
-        printf("3. Admit Patient\n");
-        printf("4. Discharge Patient\n");
-        printf("5. View Reports\n");
-        printf("6. Logout\n");
-        printf("Choice: ");
+        printf("\n========== 工作人员菜单 ==========\n");
+        printf("1. 查看所有病房\n");
+        printf("2. 查看所有病人\n");
+        printf("3. 接收病人\n");
+        printf("4. 病人出院\n");
+        printf("5. 查看报表\n");
+        printf("6. 退出登录\n");
+        printf("请选择：");
         scanf("%d", &choice);
         getchar();
         
@@ -354,25 +362,25 @@ void staff_menu(BedManagementSystem* system) {
                 char current_date[11];
                 get_current_date(current_date, sizeof(current_date));
                 
-                printf("\n--- ADMIT PATIENT ---\n");
-                printf("Patient Name: ");
+                printf("\n--- 接收病人 ---\n");
+                printf("病人姓名：");
                 fgets(name, MAX_NAME, stdin);
                 name[strcspn(name, "\n")] = '\0';
-                printf("Age: ");
+                printf("年龄：");
                 scanf("%d", &age);
                 getchar();
-                printf("Gender: ");
+                printf("性别：");
                 fgets(gender, MAX_GENDER, stdin);
                 gender[strcspn(gender, "\n")] = '\0';
-                printf("Contact: ");
+                printf("联系方式：");
                 fgets(contact, MAX_CONTACT, stdin);
                 contact[strcspn(contact, "\n")] = '\0';
-                printf("Patient ID: ");
+                printf("病人ID（自定义）：");
                 fgets(patient_id, MAX_PATIENT_ID, stdin);
                 patient_id[strcspn(patient_id, "\n")] = '\0';
-                printf("Ward ID: ");
+                printf("病房ID：");
                 scanf("%d", &ward_id);
-                printf("Bed ID: ");
+                printf("床位ID：");
                 scanf("%d", &bed_id);
                 getchar();
                 
@@ -389,22 +397,22 @@ void staff_menu(BedManagementSystem* system) {
                 
                 if (admit_patient(system, &new_patient, ward_id, bed_id)) {
                     system->next_patient_id++;
-                    printf("[+] Patient admitted successfully.\n");
+                    printf("[+] 病人接收成功。\n");
                 } else {
-                    printf("[!] Admission failed.\n");
+                    printf("[!] 接收失败。\n");
                 }
                 break;
             }
             case 4: {
                 int patient_id;
-                printf("\n--- DISCHARGE PATIENT ---\n");
-                printf("Patient ID: ");
+                printf("\n--- 病人出院 ---\n");
+                printf("病人ID：");
                 scanf("%d", &patient_id);
                 getchar();
                 if (discharge_patient(system, patient_id)) {
-                    printf("[+] Patient discharged successfully.\n");
+                    printf("[+] 病人出院成功。\n");
                 } else {
-                    printf("[!] Discharge failed.\n");
+                    printf("[!] 出院失败。\n");
                 }
                 break;
             }
@@ -412,10 +420,10 @@ void staff_menu(BedManagementSystem* system) {
                 generate_and_display_reports(system);
                 break;
             case 6:
-                printf("\n[+] Logging out...\n");
+                printf("\n[+] 正在退出登录...\n");
                 return;
             default:
-                printf("[!] Invalid choice. Please try again.\n");
+                printf("[!] 无效选项，请重试。\n");
         }
     } while (1);
 }
